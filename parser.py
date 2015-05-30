@@ -31,10 +31,13 @@ Markdown([List([Paragraph([Text('Emphasis '), Emphasis('is'), Text(' supported.'
 Markdown([List([Paragraph([Text('the first item')]), Paragraph([Text('the second item')])])])
 
 >>> parse_markdown('#######this is header')
-Markdown([Header(6,[Text('#this is header')])])
+Markdown([Paragraph([Header(6,[Text('#this is header')])])])
 
 >>> parse_markdown('#######this is *header* and **header**')
-Markdown([Header(6,[Text('#this is '), Emphasis('header'), Text(' and '), Bold('header'), Text('')])])
+Markdown([Paragraph([Header(6,[Text('#this is '), Emphasis('header'), Text(' and '), Bold('header'), Text('')])])])
+
+>>> parse_markdown('#header1\\n##header2\\n\\nanother paragraph')
+Markdown([Paragraph([Header(1,[Text('header1')]), Header(2,[Text('header2')])]), Paragraph([Text('another paragraph')])])
 
 >>> parse_markdown('hello ##this is not *header* and **header**')
 Markdown([Paragraph([Text('hello ##this is not '), Emphasis('header'), Text(' and '), Bold('header'), Text('')])])
@@ -60,9 +63,10 @@ def parse_block(block):
     '''
     # extract headers before list
     block = parse_header(block)
-    if isinstance(block, Header):
-        parts = re.split('(\\*\\*[^\\*]*\\*\\*|\\*[^\\*]*\\*)', block.items)
-        block.items = map(parse_part, parts)
+    if not isinstance(block, str):
+        for header in block.items:
+            parts = re.split('(\\*\\*[^\\*]*\\*\\*|\\*[^\\*]*\\*)', header.items)
+            header.items = map(parse_part, parts)
         return block
     # List items begins with ' - ' or ' * '
     match = re.match(r'\s*[-|\*]\s*', block)
@@ -91,10 +95,10 @@ def parse_part(string):
 def parse_header(string):
     '''Parse headers
     '''
-    match = re.match(r'^#{1,6}', string, flags=re.M)
-    if match is not None:
-        level = len(match.group(0))
-        return Header(level, string[level:])
+    matches = re.findall(r'^#{1,6}', string, flags=re.M)
+    header_items = re.split(r'^#{1,6}', string, flags=re.M)[1:]
+    if len(matches) > 0:
+        return Paragraph(map(lambda (match, items): Header(len(match), items.strip()), zip(matches, header_items)))
     return string
 
 
