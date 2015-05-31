@@ -1,6 +1,7 @@
 # -*- encoding: utf-8 -*-
 from parser import parse_markdown, Markdown, Paragraph, List, Text, Emphasis, Bold, Header
 from error import ItemTypeError
+import sys
 
 
 def render(markdown):
@@ -23,7 +24,7 @@ def render_paragraph(paragraph, in_list=False):
         if isinstance(item, Text):
             html += render_text(item)
         elif isinstance(item, List):
-            html += render_list(item)
+            html += render_list(item, in_list=True)
         elif isinstance(item, Header):
             html += render_header(item)
         elif isinstance(item, Emphasis):
@@ -31,17 +32,21 @@ def render_paragraph(paragraph, in_list=False):
         elif isinstance(item, Bold):
             html += render_bold(item)
         elif isinstance(item, Paragraph):
-            html += render_paragraph(item, in_list)
+            html += render_paragraph(item, in_list=in_list)
         else:
             raise ItemTypeError(type(item))
-    return html if in_list else '<p>\n\t%s\n</p>\n' % html
+    return html if in_list else '<p>%s</p>\n' % html
 
 
-def render_list(l):
+def render_list(l, in_list=False):
     html = ''
-    for item in l.items:
-        html += '\t<li>' + render_paragraph(item, True) + '</li>\n'
-    return '\n\t<ul>\n%s</ul>\n' % html
+    if not in_list:
+        for item in l.items:
+            html += '\t<li>\n\t\t' + render_paragraph(item, in_list=True) + '\n\t</li>\n'
+    else:
+        for item in l.items:
+            html += '\t\t\t<li>' + render_paragraph(item, in_list=True) + '</li>\n'
+    return '\n<ul>\n%s</ul>\n' % html if not in_list else '\n\t\t<ul>\n%s\t\t</ul>' % html
 
 
 def render_header(header):
@@ -56,7 +61,7 @@ def render_header(header):
             html += bold
         else:  # item is Text
             html += render_text(item)
-    return '<h%d>%s</h%d>\n' % (level, html, level)
+    return '\n<h%d>%s</h%d>\n' % (level, html, level)
 
 
 def render_emphasis(emphasis):
@@ -72,9 +77,14 @@ def render_text(text):
 
 
 if __name__ == '__main__':
-    with open('test.md', 'r') as f:
-        string = f.read()
-        markdown = parse_markdown(string)
-        with open('index.html', 'w') as html_f:
-            html_f.write(render(markdown))
-        print render(markdown)
+    try:
+        filename = sys.argv[1]
+        with open(filename, 'r') as f:
+            string = f.read()
+            markdown = parse_markdown(string)
+            with open('%s.html' % filename.split('.')[0], 'w') as html_f:
+                html_f.write(render(markdown))
+    except IndexError:
+        print "Please specify the markdown file to be converted."
+    except IOError:
+        print "File does not exist."
