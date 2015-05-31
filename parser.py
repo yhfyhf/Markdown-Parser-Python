@@ -18,17 +18,20 @@ Markdown([Paragraph([Text('Emphasis '), Emphasis('is'), Text(' supported.')])])
 >>> parse_markdown('Bold **is** supported.')
 Markdown([Paragraph([Text('Bold '), Bold('is'), Text(' supported.')])])
 
->>> parse_markdown(' - a list')
+>>> parse_markdown('- a list')
 Markdown([List([Paragraph([Text('a list')])])])
 
->>> parse_markdown(' - the first item\\n - the second item')
+>>> parse_markdown('- the first item\\n- the second item')
 Markdown([List([Paragraph([Text('the first item')]), Paragraph([Text('the second item')])])])
 
->>> parse_markdown(' - Emphasis *is* supported.')
+>>> parse_markdown('- Emphasis *is* supported.')
 Markdown([List([Paragraph([Text('Emphasis '), Emphasis('is'), Text(' supported.')])])])
 
->>> parse_markdown(' * the first item\\n * the second item')
+>>> parse_markdown('* the first item\\n* the second item')
 Markdown([List([Paragraph([Text('the first item')]), Paragraph([Text('the second item')])])])
+
+>>> parse_markdown('- item1\\n- item2\\n - item2.1\\n - item2.2\\n- item3')
+Markdown([List([Paragraph([Text('item1')]), Paragraph([Paragraph([Text('item2')]), List([Paragraph([Text('item2.1')]), Paragraph([Text('item2.2')])])]), Paragraph([Text('item3')])])])
 
 >>> parse_markdown('#######this is header')
 Markdown([Paragraph([Header(6,[Text('#this is header')])])])
@@ -44,7 +47,7 @@ Markdown([Paragraph([Text('hello ##this is not '), Emphasis('header'), Text(' an
 '''
 import re
 import doctest
-
+# 
 
 def parse_markdown(string):
     return Markdown([parse_block(block) for block in split_into_blocks(string)])
@@ -72,7 +75,7 @@ def parse_block(block):
     match = re.match(r'^[-|\*]\s+', block)
     if match is not None:
         # '^' should match at the beginning of the string and at the beginning of each line
-        items = [item for item in re.split(r'^[-|\*]\s+', block, flags=re.M)[1:]]
+        items = [item.strip() for item in re.split(r'^[-|\*]\s+', block, flags=re.M)[1:]]
         lists = List(map(parse_paragraph, items))
         for item in lists.items:
             match = re.search(r'\s+[-|\*]\s+', item.items[0].text)
