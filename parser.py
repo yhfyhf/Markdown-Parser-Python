@@ -1,4 +1,4 @@
-#encoding: utf-8
+# -*- encoding: utf-8 -*-
 '''Parses Markdown strings and return a Markdown object.
 
 First split strings into blocks as paragraphs. For each paragraph,
@@ -69,11 +69,20 @@ def parse_block(block):
             header.items = map(parse_part, parts)
         return block
     # List items begins with ' - ' or ' * '
-    match = re.match(r'\s*[-|\*]\s*', block)
+    match = re.match(r'^[-|\*]\s+', block)
     if match is not None:
         # '^' should match at the beginning of the string and at the beginning of each line
-        items = [item.strip() for item in re.split(r'^\s*[-|\*]\s*', block, flags=re.M)[1:]]
-        return List(map(parse_paragraph, items))
+        items = [item for item in re.split(r'^[-|\*]\s+', block, flags=re.M)[1:]]
+        lists = List(map(parse_paragraph, items))
+        for item in lists.items:
+            match = re.search(r'\s+[-|\*]\s+', item.items[0].text)
+            if match is not None:
+                inner_items = [inner_item.strip() for inner_item in re.split(r'\s+[-|\*]\s+', item.items[0].text, flags=re.M)]
+                item.items = list()
+                item.items.append(parse_paragraph(inner_items[0]))
+                inner_lists = List(map(parse_paragraph, inner_items[1:]))
+                item.items.append(inner_lists)
+        return lists
     return parse_paragraph(block)
 
 
